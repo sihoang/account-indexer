@@ -3,12 +3,14 @@
 package int
 
 import (
+	"encoding/json"
 	"math/big"
 	"strings"
 	"testing"
 
 	"github.com/WeTrustPlatform/account-indexer/common"
 	"github.com/WeTrustPlatform/account-indexer/fetcher"
+	"github.com/WeTrustPlatform/account-indexer/http/types"
 	"github.com/WeTrustPlatform/account-indexer/indexer"
 	"github.com/WeTrustPlatform/account-indexer/repository/keyvalue"
 	"github.com/WeTrustPlatform/account-indexer/repository/keyvalue/dao"
@@ -43,7 +45,18 @@ func TestContractCreation(t *testing.T) {
 	tx := addressIndexes[0].TxHash
 	assert.True(t, strings.EqualFold("0x61278dd960415eadf11cfe17a6c38397af658e77bbdd367db70e19ee3a193bdd", tx))
 	tm := common.UnmarshallIntToTime(addressIndexes[0].Time)
-	t.Logf("TestContractCreation found transaction at %v \n", tm)
+	t.Logf("TestContractCreation found contract creation transaction at %v \n", tm)
+	// another transaction in that block
+	address := "0xec3ecca662f089a1bb83c681339729fef66e22b1"
+	total, addressIndexes = idx.IndexRepo.GetTransactionByAddress(address, 10, 0, fromTime, toTime)
+	assert.Equal(t, 1, total)
+	tx = addressIndexes[0].TxHash
+	assert.True(t, strings.EqualFold("0xdd230c27a118d2707174dca6c17ca94da6f1ed1fc1e3374373c562168c1dcd67", tx))
+	val := addressIndexes[0].Value
+	assert.Equal(t, big.NewInt(1201532900000000000), val)
+	eiAddress := types.AddressToEIAddress(addressIndexes[0])
+	ba, _ := json.Marshal(eiAddress)
+	t.Logf("The returned json is %v \n", string(ba))
 }
 
 func NewTestIndexer() indexer.Indexer {

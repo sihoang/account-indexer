@@ -42,3 +42,12 @@ func TestMarshall(t *testing.T) {
 	expectedStr := fmt.Sprintf(`{"numFound":10,"start":5,"data":[{"address":"from1","txHash":"0xtx1","value":-111,"time":"%v","coupleAddress":"to1","data":"AQI=","gas":0,"gasPrice":null}]}`, tm)
 	assert.Equal(t, expectedStr, dataStr)
 }
+
+func TestUnmarshall(t *testing.T) {
+	// http://mainnet.kivutar.me:3000/api/v1/accounts/0x7C419672d84a53B0a4eFed57656Ba5e4A0379084?rows=42
+	str := `{"numFound":42,"start":0,"data":[{"address":"0x7c419672d84a53b0a4efed57656ba5e4a0379084","sequence":0,"tx_hash":"0x30a012177578ace1bc66cdda7d537f874682617182f41e46af439b06a5c4b9bb","value":1299152264762256509567140741597411934085535681791137795914250996166704,"time":"2019-01-07T15:14:56+07:00","coupleAddress":"0x94c9f3b353f215e8db0bef305f25e010e2441f2d","data":null,"gas":0,"gasPrice":null}]}`
+	var result EITransactionsByAccount
+	err := json.Unmarshal([]byte(str), &result)
+	assert.Equal(t, 42, result.Total)
+	assert.Nil(t, err)
+}
