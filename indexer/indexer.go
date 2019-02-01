@@ -224,11 +224,7 @@ func (indexer *Indexer) ProcessBlock(blockDetail *types.BLockDetail, isBatch boo
 
 // FetchAndProcess fetch a block data from blockchain and process it
 func (indexer *Indexer) FetchAndProcess(blockNumber *big.Int) error {
-	fetcher, err := fetcher.NewChainFetch()
-	if err != nil {
-		return err
-	}
-	blockDetail, err := fetcher.FetchABlock(blockNumber)
+	blockDetail, err := indexer.realtimeFetcher.FetchABlock(blockNumber)
 	if err != nil {
 		return err
 	}
