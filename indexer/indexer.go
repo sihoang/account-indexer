@@ -33,6 +33,7 @@ func NewIndexer(IndexRepo repository.IndexRepo, BatchRepo repository.BatchRepo, 
 		wt := watcher.NewNodeStatusWatcher(IndexRepo, BatchRepo)
 		result.watcher = &wt
 	}
+	result.createRealtimeFetcher()
 	return result
 }
 
@@ -72,13 +73,12 @@ func (indexer *Indexer) index(indexAfterIPCChange bool) {
 		var sub service.IpcSubscriber = indexer
 		service.GetIpcManager().Subscribe(&sub)
 	}
-	fetcher, err := fetcher.NewChainFetch()
-	if err != nil {
+
+	indexer.createRealtimeFetcher()
+	if indexer.realtimeFetcher == nil {
 		log.Println("Indexer: index stopped because cannot create new fetch for realtime goroutine")
-		indexer.realtimeFetcher = nil
 		return
 	}
-	indexer.realtimeFetcher = fetcher
 
 	latestBlock, err := indexer.realtimeFetcher.GetLatestBlock()
 	if err != nil {
@@ -322,4 +322,18 @@ func GetInitBatches(numBatch int, genesisBlock *big.Int, latestBlock *big.Int) [
 		result = append(result, batch)
 	}
 	return result
+}
+
+func (indexer *Indexer) createRealtimeFetcher() {
+	if indexer.realtimeFetcher != nil {
+		return
+	}
+
+	fe, err := fetcher.NewChainFetch()
+	if err != nil {
+		log.Println("Indexer: createRealtimeFetcher failed", err)
+		indexer.realtimeFetcher = nil
+		return
+	}
+	indexer.realtimeFetcher = fe
 }
