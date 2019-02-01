@@ -33,7 +33,6 @@ func NewIndexer(IndexRepo repository.IndexRepo, BatchRepo repository.BatchRepo, 
 		wt := watcher.NewNodeStatusWatcher(IndexRepo, BatchRepo)
 		result.watcher = &wt
 	}
-	result.createRealtimeFetcher()
 	return result
 }
 
@@ -224,11 +223,13 @@ func (indexer *Indexer) ProcessBlock(blockDetail *types.BLockDetail, isBatch boo
 
 // FetchAndProcess fetch a block data from blockchain and process it
 func (indexer *Indexer) FetchAndProcess(blockNumber *big.Int) error {
+	indexer.createRealtimeFetcher()
+	log.Printf("Indexer: Fetching block %v", blockNumber)
 	blockDetail, err := indexer.realtimeFetcher.FetchABlock(blockNumber)
 	if err != nil {
 		return err
 	}
-	log.Printf("Indexer: Fetching block %v successfully", blockNumber)
+	log.Printf("Indexer: Fetched block %v successfully", blockNumber)
 	isBatch := true
 	err = indexer.ProcessBlock(blockDetail, isBatch)
 	if err != nil {
