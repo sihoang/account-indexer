@@ -85,7 +85,7 @@ func indexBlocks(t *testing.T, blockNumbers []string) {
 	password := os.Getenv(indexerHttp.AdminPassword)
 	encoded := base64.StdEncoding.EncodeToString([]byte(userName + ":" + password))
 	httpClient := &http.Client{
-		Timeout: 5 * time.Second,
+		Timeout: 10 * time.Second,
 	}
 	for _, block := range blockNumbers {
 		url := fmt.Sprintf("http://localhost:3000/admin/blocks/%v", block)
