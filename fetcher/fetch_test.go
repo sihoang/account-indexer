@@ -23,13 +23,16 @@ var header = &gethtypes.Header{
 
 var fromStr = "address From"
 var toStr = "address To"
+var toStr2 = "address To2"
 var from = gethCommon.BytesToAddress([]byte(fromStr))
 var to = gethCommon.BytesToAddress([]byte(toStr))
+var to2 = gethCommon.BytesToAddress([]byte(toStr2))
 
 var amount = big.NewInt(100)
 
 var transactions = []*gethtypes.Transaction{
 	gethtypes.NewTransaction(uint64(1), to, amount, uint64(21000), big.NewInt(100), nil),
+	gethtypes.NewTransaction(uint64(1), to2, amount, uint64(21000), big.NewInt(100), nil),
 }
 
 func (mec MockEthClient) SubscribeNewHead(ctx context.Context, ch chan<- *gethtypes.Header) (ethereum.Subscription, error) {
@@ -53,8 +56,18 @@ func (mec MockEthClient) HeaderByNumber(ctx context.Context, number *big.Int) (*
 	return header, nil
 }
 
+var count = 0
+
 func (mec MockEthClient) TransactionReceipt(ctx context.Context, txHash common.Hash) (*gethtypes.Receipt, error) {
-	return &gethtypes.Receipt{}, nil
+	count++
+	// 1st transaction has good tx receipt
+	if count == 1 {
+		return &gethtypes.Receipt{Status: 1}, nil
+	}
+	// 2nd transaction has bad tx receipt
+	// Should not include this in the result
+	return &gethtypes.Receipt{Status: 0}, nil
+
 }
 
 func (mec MockEthClient) TransactionByHash(ctx context.Context, hash common.Hash) (*gethtypes.Transaction, bool, error) {
@@ -74,6 +87,7 @@ func TestFetchData(t *testing.T) {
 	// time.Sleep(time.Second * 1)
 	blockDetail := <-indexerChannel
 	assert.Equal(t, header.Number.Uint64(), blockDetail.BlockNumber.Uint64())
+	assert.Equal(t, 1, len(blockDetail.Transactions))
 	transaction := blockDetail.Transactions[0]
 	assert.Equal(t, from.String(), transaction.From)
 	assert.Equal(t, to.String(), transaction.To)

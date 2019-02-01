@@ -121,7 +121,8 @@ func (cf *ChainFetch) FetchABlock(blockNumber *big.Int) (*types.BLockDetail, err
 	}
 	transactions := []types.TransactionDetail{}
 	if len(aBlock.Transactions()) > 0 {
-		for index, tx := range aBlock.Transactions() {
+		allTransactions := aBlock.Transactions()
+		for index, tx := range allTransactions {
 			sender, err := cf.Client.TransactionSender(ctx, tx, aBlock.Hash(), uint(index))
 			if err != nil {
 				log.Println("ChainFetch: FetchABlock TransactionSender returns error " + err.Error())
@@ -133,32 +134,30 @@ func (cf *ChainFetch) FetchABlock(blockNumber *big.Int) (*types.BLockDetail, err
 			if tx.To() != nil {
 				to = tx.To().String()
 			}
-			transaction := types.TransactionDetail{
+			mainTx := types.TransactionDetail{
 				From:   sender.String(),
 				To:     to,
 				TxHash: tx.Hash().String(),
 				Value:  tx.Value(),
 			}
-			transactions = append(transactions, transaction)
-			// Index transactions that create contract too
-			if tx.To() == nil && (tx.Value() == nil || tx.Value().Int64() == 0) {
-				txRecp, err := cf.Client.TransactionReceipt(ctx, tx.Hash())
-				if err == nil {
-					if txRecp != nil {
-						transaction := types.TransactionDetail{
-							From:   "",
-							To:     txRecp.ContractAddress.String(),
-							TxHash: tx.Hash().String(),
-							Value:  tx.Value(),
-						}
-						transactions = append(transactions, transaction)
+
+			txRecp, err := cf.Client.TransactionReceipt(ctx, tx.Hash())
+			if err != nil {
+				log.Printf("ChainFetch: FetchABlock warning cannot get receipt for transaction %v, error=%v \n", tx.Hash().String(), err.Error())
+				continue
+			}
+			if txRecp.Status != 0 {
+				// 0 means the transaction was failed, do not index it
+				transactions = append(transactions, mainTx)
+				// Index transactions that create contract too
+				if tx.To() == nil && (tx.Value() == nil || tx.Value().Int64() == 0) {
+					contractTx := types.TransactionDetail{
+						From:   "",
+						To:     txRecp.ContractAddress.String(),
+						TxHash: tx.Hash().String(),
+						Value:  tx.Value(),
 					}
-				} else {
-					log.Printf("ChainFetch: FetchABlock warning cannot get receipt for transaction %v, error=%v \n", tx.Hash().String(), err.Error())
-					// https://github.com/WeTrustPlatform/account-indexer/issues/18
-					// We trust our geth nodes, some other nodes always return error for this API
-					// switchIPC()
-					// return &types.BLockDetail{}, err
+					transactions = append(transactions, contractTx)
 				}
 			}
 		}
